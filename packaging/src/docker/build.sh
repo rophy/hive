@@ -70,19 +70,21 @@ WORK_DIR="$(mktemp -d)"
 HADOOP_VERSION=${HADOOP_VERSION:-$(mvn -f "$SOURCE_DIR/pom.xml" -q help:evaluate -Dexpression=hadoop.version -DforceStdout)}
 TEZ_VERSION=${TEZ_VERSION:-$(mvn -f "$SOURCE_DIR/pom.xml" -q help:evaluate -Dexpression=tez.version -DforceStdout)}
 
-HADOOP_URL=${HADOOP_URL:-"https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz"}
-echo "Downloading Hadoop from $HADOOP_URL..."
-if ! curl --fail -L "$HADOOP_URL" -o "$WORK_DIR/hadoop-$HADOOP_VERSION.tar.gz"; then
-  echo "Fail to download Hadoop, exiting...."
-  exit 1
-fi
+# HADOOP_URL=${HADOOP_URL:-"https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz"}
+# echo "Downloading Hadoop from $HADOOP_URL..."
+# if ! curl --fail -L "$HADOOP_URL" -o "$WORK_DIR/hadoop-$HADOOP_VERSION.tar.gz"; then
+#   echo "Fail to download Hadoop, exiting...."
+#   exit 1
+# fi
+cp "hadoop-$HADOOP_VERSION.tar.gz" "$WORK_DIR/hadoop-$HADOOP_VERSION.tar.gz"
 
-TEZ_URL=${TEZ_URL:-"https://archive.apache.org/dist/tez/$TEZ_VERSION/apache-tez-$TEZ_VERSION-bin.tar.gz"}
-echo "Downloading Tez from $TEZ_URL..."
-if ! curl --fail -L "$TEZ_URL" -o "$WORK_DIR/apache-tez-$TEZ_VERSION-bin.tar.gz"; then
-  echo "Failed to download Tez, exiting..."
-  exit 1
-fi
+# TEZ_URL=${TEZ_URL:-"https://archive.apache.org/dist/tez/$TEZ_VERSION/apache-tez-$TEZ_VERSION-bin.tar.gz"}
+# echo "Downloading Tez from $TEZ_URL..."
+# if ! curl --fail -L "$TEZ_URL" -o "$WORK_DIR/apache-tez-$TEZ_VERSION-bin.tar.gz"; then
+#   echo "Failed to download Tez, exiting..."
+#   exit 1
+# fi
+cp "apache-tez-$TEZ_VERSION-bin.tar.gz" "$WORK_DIR/apache-tez-$TEZ_VERSION-bin.tar.gz"
 
 if [ -n "$HIVE_VERSION" ]; then
   HIVE_URL=${HIVE_URL:-"https://archive.apache.org/dist/hive/hive-$HIVE_VERSION/apache-hive-$HIVE_VERSION-bin.tar.gz"}
@@ -95,12 +97,13 @@ if [ -n "$HIVE_VERSION" ]; then
 else
     HIVE_VERSION=$(mvn -f "$SOURCE_DIR/pom.xml" -q help:evaluate -Dexpression=project.version -DforceStdout)
     HIVE_TAR="$SOURCE_DIR/packaging/target/apache-hive-$HIVE_VERSION-bin.tar.gz"
-    if  ls $HIVE_TAR || mvn -f $SOURCE_DIR/pom.xml clean package -DskipTests -Pdist; then
-      cp "$HIVE_TAR" "$WORK_DIR/"
-    else
-      echo "Failed to compile Hive Project, exiting..."
-      exit 1
-    fi
+    mvn -f $SOURCE_DIR/pom.xml package -DskipTests -Pdist
+    # if  ls $HIVE_TAR || mvn -f $SOURCE_DIR/pom.xml clean package -DskipTests -Pdist; then
+    #   cp "$HIVE_TAR" "$WORK_DIR/"
+    # else
+    #   echo "Failed to compile Hive Project, exiting..."
+    #   exit 1
+    # fi
 fi
 
 cp -R "$SOURCE_DIR/packaging/src/docker/conf" "$WORK_DIR/"
@@ -110,7 +113,7 @@ docker build \
         "$WORK_DIR" \
         -f "$WORK_DIR/Dockerfile" \
         -t "$repo/hive:$HIVE_VERSION" \
-        --build-arg "BUILD_ENV=unarchive"
+        --build-arg "BUILD_ENV=unarchive" \
         --build-arg "HIVE_VERSION=$HIVE_VERSION" \
         --build-arg "HADOOP_VERSION=$HADOOP_VERSION" \
         --build-arg "TEZ_VERSION=$TEZ_VERSION" \
